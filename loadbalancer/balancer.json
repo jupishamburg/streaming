@@ -4,13 +4,15 @@
 			"url": "gododdin.techel.net:8000",
 			"max-listeners": 100,
 			"current-listeners": 0,
-			"free-slots": 100
+			"free-slots": 100,
+			"master": false
 		},
 		{
 			"url": "cexy.techel.net:8000",
 			"max-listeners": 100,
 			"current-listeners": 0,
-			"free-slots": 100
+			"free-slots": 100,
+			"master": true
 		}
 	],
 	"update-interval": 15,
