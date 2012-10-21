@@ -1,0 +1,23 @@
+{
+	"servers": [
+		{
+			"url": "gododdin.techel.net:8000",
+			"max-listeners": 100,
+			"current-listeners": 0,
+			"free-slots": 100
+		},
+		{
+			"url": "cexy.techel.net:8000",
+			"max-listeners": 100,
+			"current-listeners": 0,
+			"free-slots": 100
+		}
+	],
+	"update-interval": 15,
+
+	"webserver": {
+		"host": "0.0.0.0",
+		"port": 8080,
+		"frontend": "tornado"
+	}
+}
