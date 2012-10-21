@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import bottle
-from bottle import run, response, redirect
+from bottle import run, response, redirect, template
 from operator import itemgetter
 import urllib.request
 import json
@@ -55,18 +55,9 @@ def redirector(mount):
 # stats deliver
 @app.route("/")
 def stats():
-	out = '<table border="1"><tr><th>Listeners</th><th>Slots</th><th>Free slots</th><th>Server</th></tr>'
 	servers = sorted(app.config["servers"], key=itemgetter("free-slots"), reverse=True)
-	for s in servers:
-		out += '<tr><td>{0}</td><td>{1}</td><td>{2}</td><td><a href="http://{3}">{3}</a></td></tr>'.format(
-			s["current-listeners"],
-			s["max-listeners"],
-			s["free-slots"],
-			s["url"]
-		)
- 
-	out += '</table>'
-	return out
+	
+	return template("index.tpl", servers=servers)
 
 if __name__ == '__main__':
 	import argparse
