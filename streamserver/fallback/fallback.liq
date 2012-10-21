@@ -50,13 +50,13 @@ output = audio_to_stereo(
 		)
 	)
 
-output.icecast(%vorbis(quality = output_quality), host = ice_host, port = ice_port, fallible = true,
+output.icecast(%vorbis(quality = output_quality), host = ice_host, port = ice_port,
 	password = ice_password, mount = ice_mount, user = ice_user, public = ice_public,
 	name = output_name, description = output_desc,
 	genre = output_genre, url = output_url,
 	output)
 
-output.icecast(%vorbis(quality = output_quality), host = ice_host, port = ice_port, fallible = true, icy_metadata = "true",
+output.icecast(%vorbis(quality = output_quality), host = ice_host, port = ice_port, icy_metadata = "true",
 	password = ice_password, mount = ice_mount_html5, user = ice_user, public = false,
 	name = output_name, description = output_desc,
 	genre = output_genre, url = output_url,
