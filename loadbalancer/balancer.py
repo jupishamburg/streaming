@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from bottle import route, run, response
+from bottle import route, run, response, redirect
 from operator import itemgetter
 import urllib.request
 import json
@@ -60,6 +60,17 @@ def playlist(mount):
  
 	response.headers["Content-Type"] = "audio/x-mpegurl"
 	return "\n".join(urls)
+
+# redirect deliver (for html5 audio players, …)
+@route("/<mount>")
+def redirector(mount):
+	s = sorted(config["servers"], key=itemgetter("free-slots"), reverse=True)[0]
+	url = "http://{0}/{1}".format(
+		s["url"],
+		mount
+	)
+
+	redirect(url, code=307)
  
 # stats deliver
 @route("/")
