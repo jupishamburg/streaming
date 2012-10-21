@@ -27,6 +27,8 @@ harbor_mount	= "live"
 harbor_amplify	= 1.0
 
 fallback1	= amplify(1.2, input.http("http://localhost:8000/fallback.ogg"))
+# the following line is a workaround which removes annoying buffer overflow log messages. these messages aren't harmful but they are really annoying. http://permalink.gmane.org/gmane.comp.audio.liquidsoap.user/1297
+output.dummy(mksafe(fallback1))
 fallback2	= amplify(1.0, single("/etc/liquidsoap/problems.ogg"))
 
 def crossfade(a,b)
