@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import bottle
 from bottle import run, response, redirect, template, abort
 from operator import itemgetter
