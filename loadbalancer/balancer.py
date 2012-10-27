@@ -29,24 +29,27 @@ class FreeSlotThread(threading.Thread):
 			exit("Error: There are {0} master(s).".format(masters))
 
 		while True:
-			# listener slots & mountpoints per server
-			for server in self.config["servers"]:
-				url = "http://{0}/json.xsl".format(server["url"])
-				stats = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
-				server["current-listeners"] = int(stats["total_listeners"])
-				server["free-slots"] = server["max-listeners"] - int(stats["total_listeners"])
-				
-				# get the mountpoints
-				server["mounts"] = []
-				for mount in stats["mounts"]:
-					server["mounts"].append(mount["mount"][1:len(mount["mount"])])
-			
-			# get the available mountpoints (available as in: distributed by the master, reachable over all servers)
-			self.config["mountpoints"] = master["mounts"]
-			for mount in self.config["mountpoints"]:
+			try:
+				# listener slots & mountpoints per server
 				for server in self.config["servers"]:
-					if mount not in server["mounts"]:
-						self.config["mountpoints"].remove(mount)
+					url = "http://{0}/json.xsl".format(server["url"])
+					stats = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
+					server["current-listeners"] = int(stats["total_listeners"])
+					server["free-slots"] = server["max-listeners"] - int(stats["total_listeners"])
+					
+					# get the mountpoints
+					server["mounts"] = []
+					for mount in stats["mounts"]:
+						server["mounts"].append(mount["mount"][1:len(mount["mount"])])
+				
+				# get the available mountpoints (available as in: distributed by the master, reachable over all servers)
+				self.config["mountpoints"] = master["mounts"]
+				for mount in self.config["mountpoints"]:
+					for server in self.config["servers"]:
+						if mount not in server["mounts"]:
+							self.config["mountpoints"].remove(mount)
+			except:
+				pass
 			
 			# update the bottlepy config
 			self.app.config.update(self.config)
