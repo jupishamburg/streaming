@@ -1,25 +1,23 @@
 {
-	"servers": [
-		{
-			"url": "gododdin.techel.net:8000",
-			"max-listeners": 100,
-			"current-listeners": 0,
-			"free-slots": 100,
-			"master": false
-		},
-		{
-			"url": "cexy.techel.net:8000",
-			"max-listeners": 100,
-			"current-listeners": 0,
-			"free-slots": 100,
-			"master": true
-		}
-	],
-	"update-interval": 15,
-
-	"webserver": {
-		"host": "0.0.0.0",
-		"port": 8080,
-		"frontend": "tornado"
+	"http://aluminium.grimpen.net:8000/": {
+		"max_listeners": 100
+	},
+	"http://cexy.techel.net:8000/": {
+		"max_listeners": 200
+	},
+	"http://gododdin.techel.net:8000/": {
+		"max_listeners": 100
+	},
+	"http://felina.techel.net:8000/": {
+		"max_listeners": 200
+	},
+	"http://iridium.grimpen.net:8000/": {
+		"max_listeners": 200
+	},
+	"http://carthago.grimpen.net:8000/": {
+		"max_listeners": 200
+	},
+	"http://maereo.grimpen.net:8000/": {
+		"max_listeners": 100
 	}
 }

@@ -1,113 +1,168 @@
 #!/usr/bin/env python3
 import bottle
 from bottle import run, response, redirect, template, abort
-from operator import itemgetter
+from pprint import pprint
 import urllib.request
+import urllib.parse
 import json
 import time
+import functools
 import threading
+import time
  
 # stats refresher thread
-class FreeSlotThread(threading.Thread):
+class FetchStatsThread(threading.Thread):
 	daemon = True
+	interval = 10
  
-	def __init__(self, config, app):
+	def __init__(self, servers, app=None):
 		threading.Thread.__init__(self)
-		self.config = config
+		self.servers = servers
 		self.app = app
  
 	def run(self):
-		master = None
-		masters = 0
-	
-		# find the master
-		for server in self.config["servers"]:
-			if server["master"] == True:
-				master = server
-				masters += 1
-		if masters == 0 or masters > 1:
-			exit("Error: There are {0} master(s).".format(masters))
+		self.stats = {}
 
 		while True:
-			try:
-				# listener slots & mountpoints per server
-				for server in self.config["servers"]:
-					url = "http://{0}/json.xsl".format(server["url"])
-					stats = json.loads(urllib.request.urlopen(url).read().decode('utf-8'))
-					server["current-listeners"] = int(stats["total_listeners"])
-					server["free-slots"] = server["max-listeners"] - int(stats["total_listeners"])
-					
-					# get the mountpoints
-					server["mounts"] = []
-					for mount in stats["mounts"]:
-						server["mounts"].append(mount["mount"][1:len(mount["mount"])])
-				
-				# get the available mountpoints (available as in: distributed by the master, reachable over all servers)
-				self.config["mountpoints"] = master["mounts"]
-				for mount in self.config["mountpoints"]:
-					for server in self.config["servers"]:
-						if mount not in server["mounts"]:
-							self.config["mountpoints"].remove(mount)
-			except:
-				pass
-			
-			# update the bottlepy config
-			self.app.config.update(self.config)
- 
-			time.sleep(self.config["update-interval"])
+			for url, config in self.servers.items():
+				with urllib.request.urlopen(urllib.parse.urljoin(url, "/json.xsl")) as f:
+					ic2_stats = json.loads(f.read().decode())
+
+				# Prepare stats dictionary
+				stats = {
+					"max_listeners": config["max_listeners"],
+					"current_listeners": 0,
+					"mounts": {}
+				}
+
+				# Iterate through presented mount points
+				for mount in ic2_stats["mounts"]:
+					# Build mount point name and prefix it if requested
+					mount_name = mount["mount"]
+					if "prefix" in config:
+						mount_name = config["prefix"] + mount_name
+
+					# Add mount point to stats dictionary
+					stats["mounts"][mount_name] = {
+						"title": mount["title"],
+						"description": mount["description"],
+						"genre": mount["genre"],
+						"url": mount["url"],
+						"bitrate": int(mount["bitrate"]),
+						"listeners": int(mount["listeners"]),
+					}
+
+				if stats["mounts"]:
+					# Calculate current listeners by adding listeners of all mount points together
+					stats["current_listeners"] = functools.reduce(
+						lambda a, b: a + b,
+						map(lambda c: c["listeners"], stats["mounts"].values())
+					)
+				# Calculate free slots
+				stats["free_slots"] = stats["max_listeners"] - stats["current_listeners"]
+				# Calculate simple usage rate by dividing current listeners by max listeners
+				stats["usage_rate"] = stats["current_listeners"] / stats["max_listeners"]
+				# Add last refresh time
+				stats["last_refresh"] = time.time()
+
+				# Publish stats dictionary
+				self.stats[url] = stats
+
+			# Sleep for n seconds
+			time.sleep(self.interval)
 
 app = bottle.Bottle()
 
-# playlist deliver
+def sort_and_filter_servers(servers, mount):
+	# Fix mount point name if needed
+	if mount[0] != "/":
+		mount = "/" + mount
+	# Sort server list by usage rate (lowest usage rate => first server)
+	servers = sorted(
+		servers,
+		key=lambda s: s[1]["usage_rate"]
+	)
+	# Filter servers out which are full
+	servers = filter(
+		lambda s: s[1]["usage_rate"] < 1,
+		servers
+	)
+	# Filter servers which can deliver the requested mount point
+	servers = filter(
+		lambda s: mount in s[1]["mounts"],
+		servers
+	)
+	# Return result as list
+	return list(servers)
+
 @app.route("/<mount>.m3u")
 def playlist(mount):
-	if mount not in app.config["mountpoints"]:
+	servers = sort_and_filter_servers(app.config["fetcher"].stats.items(), mount)
+
+	if not servers:
 		abort(404, "Uuuh … ooh … what about trying to listen to an existing stream?")
-		
+
 	urls = []
-	servers = sorted(app.config["servers"], key=itemgetter("free-slots"), reverse=True)
-	for s in servers:
-		urls.append("http://{0}/{1}".format(
-			s["url"],
-			mount
-		))
- 
+
+	# Iterate through the servers
+	for url, server in servers:
+		urls.append(urllib.parse.urljoin(url, mount))
+	
 	response.headers["Content-Type"] = "audio/x-mpegurl"
 	return "\n".join(urls)
 
-# redirect deliver (for html5 audio players, …)
 @app.route("/<mount>")
 def redirector(mount):
-	if mount not in app.config["mountpoints"]:
+	servers = sort_and_filter_servers(app.config["fetcher"].stats.items(), mount)
+
+	if not servers:
+		# The requested mount point cannot be delivered
 		abort(404, "Uuuh … ooh … what about trying to listen to an existing stream?")
-		
-	s = sorted(app.config["servers"], key=itemgetter("free-slots"), reverse=True)[0]
-	url = "http://{0}/{1}".format(
-		s["url"],
-		mount
+	
+	# Build url and redirect
+	url, server = servers[0]
+	redirect(urllib.parse.urljoin(url, mount), code=307)
+
+@app.route("/stats.json")
+def stats():
+	response.headers["Content-Type"] = "application/json"
+	return json.dumps(app.config["fetcher"].stats, indent=4)
+
+@app.route("/")
+def index():
+	servers = sorted(
+		app.config["fetcher"].stats.items(),
+		key=lambda s: s[1]["usage_rate"]
 	)
 
-	redirect(url, code=307)
- 
-# stats deliver
-@app.route("/")
-def stats():
-	servers = sorted(app.config["servers"], key=itemgetter("free-slots"), reverse=True)
-	
-	return template("index.tpl", servers=servers)
+	total_listeners = functools.reduce(
+		lambda a, b: a + b,
+		map(
+			lambda s: s[1]["current_listeners"],
+			servers
+		)
+	)
+
+	return template("index.tpl", servers=servers, total_listeners=total_listeners)
 
 if __name__ == '__main__':
 	import argparse
 	argparser = argparse.ArgumentParser(description="Load balancer for Icecast2 streams")
 	argparser.add_argument('-c', '--config', type=open, default="balancer.json")
+	argparser.add_argument('-S', '--slave', default=None)
 	argparser.add_argument('-s', '--server', type=str, default="tornado")
 	argparser.add_argument('-H', '--host', type=str, default="0.0.0.0")
 	argparser.add_argument('-p', '--port', type=int, default=8080)
 	args = argparser.parse_args()
 
-	config = json.load(args.config)
-	FreeSlotThread(config, app).start()
+	if args.slave:
+		with urllib.request.urlopen(args.slave) as f:
+			config = json.loads(f.read().decode())
+	else:
+		config = json.load(args.config)
+	fetcher = FetchStatsThread(config)
+	fetcher.start()
 
-	app.config.update(config)
+	app.config["fetcher"] = fetcher
 	run(app, server=args.server, host=args.host, port=args.port)
- 
+

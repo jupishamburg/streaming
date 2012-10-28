@@ -1,5 +1,3 @@
-%totallisteners = 0
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -14,17 +12,15 @@
 				<th>Free slots</th>
 				<th>Total slots</th>
 			</tr>
-			%for s in servers:
+			%for url, server in servers:
 				<tr>
-					<td><a href="http://{{ s["url"] }}">{{ s["url"] }}</a></td>
-					<td>{{ s["current-listeners"] }}</td>
-					<td>{{ s["free-slots"] }}</td>
-					<td>{{ s["max-listeners"] }}</td>
+					<td><a href="http://{{ url }}">{{ url }}</a></td>
+					<td>{{ server["current_listeners"] }}</td>
+					<td>{{ server["free_slots"] }}</td>
+					<td>{{ server["max_listeners"] }}</td>
 				</tr>
-				
-				%totallisteners += s["current-listeners"]
 			%end
 		</table>
-		<p>Total listeners: {{ totallisteners }}</p>
+		<p>Total listeners: {{ total_listeners }}</p>
 	</body>
 </html>
