@@ -7,6 +7,22 @@
 	<body>
 		<table border="1">
 			<tr>
+				<th>Mount</th>
+				<th>Title</th>
+				<th>Description</th>
+				<th>Listeners</th>
+			</tr>
+			%for name, mount in mounts.items():
+				<tr>
+					<td><a href="{{ name }}">{{ name }}</a></td>
+					<td>{{ mount["title"] }}</td>
+					<td>{{ mount["description"] }}</td>
+					<td>{{ mount["listeners"] }}</td>
+				</tr>
+			%end
+		</table>
+		<table border="1">
+			<tr>
 				<th>Host</th>
 				<th>Listeners</th>
 				<th>Free slots</th>

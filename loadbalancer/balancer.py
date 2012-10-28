@@ -19,7 +19,7 @@ class FetchStatsThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.servers = servers
 		self.app = app
- 
+	
 	def run(self):
 		self.stats = {}
 
@@ -73,7 +73,7 @@ class FetchStatsThread(threading.Thread):
 
 app = bottle.Bottle()
 
-def sort_and_filter_servers(servers, mount):
+def find_mount_servers(servers, mount):
 	# Fix mount point name if needed
 	if mount[0] != "/":
 		mount = "/" + mount
@@ -95,9 +95,28 @@ def sort_and_filter_servers(servers, mount):
 	# Return result as list
 	return list(servers)
 
+def get_mounts(servers):
+	mounts = {}
+	for url, server in servers.items():
+		for mount, mount_stats in server["mounts"].items():
+			if mount not in mounts:
+				mounts[mount] = {
+					"servers": [],
+					"listeners": 0,
+					"title": mount_stats["title"],
+					"description": mount_stats["description"],
+					"genre": mount_stats["genre"],
+					"bitrate": mount_stats["bitrate"],
+					"url": mount_stats["url"]
+				}
+			mounts[mount]["servers"].append(url)
+			mounts[mount]["listeners"] += mount_stats["listeners"]
+	
+	return mounts
+
 @app.route("/<mount>.m3u")
 def playlist(mount):
-	servers = sort_and_filter_servers(app.config["fetcher"].stats.items(), mount)
+	servers = find_mount_servers(app.config["fetcher"].stats.items(), mount)
 
 	if not servers:
 		abort(404, "Uuuh … ooh … what about trying to listen to an existing stream?")
@@ -113,7 +132,7 @@ def playlist(mount):
 
 @app.route("/<mount>")
 def redirector(mount):
-	servers = sort_and_filter_servers(app.config["fetcher"].stats.items(), mount)
+	servers = find_mount_servers(app.config["fetcher"].stats.items(), mount)
 
 	if not servers:
 		# The requested mount point cannot be delivered
@@ -133,12 +152,20 @@ def config():
 	response.headers["Content-Type"] = "application/json"
 	return json.dumps(app.config["config"])
 
+@app.route("/mounts.json")
+def config():
+	mounts = get_mounts(app.config["fetcher"].stats)
+	
+	response.headers["Content-Type"] = "applicationijson"
+	return json.dumps(mounts, indent=4)
+
 @app.route("/")
 def index():
 	servers = sorted(
 		app.config["fetcher"].stats.items(),
 		key=lambda s: s[1]["usage_rate"]
 	)
+	mounts = get_mounts(app.config["fetcher"].stats)
 
 	total_listeners = functools.reduce(
 		lambda a, b: a + b,
@@ -148,7 +175,7 @@ def index():
 		)
 	)
 
-	return template("index.tpl", servers=servers, total_listeners=total_listeners)
+	return template("index.tpl", servers=servers, total_listeners=total_listeners, mounts=mounts)
 
 if __name__ == '__main__':
 	import argparse
