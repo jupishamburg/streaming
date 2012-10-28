@@ -14,7 +14,7 @@
 			</tr>
 			%for url, server in servers:
 				<tr>
-					<td><a href="http://{{ url }}">{{ url }}</a></td>
+					<td><a href="{{ url }}">{{ url }}</a></td>
 					<td>{{ server["current_listeners"] }}</td>
 					<td>{{ server["free_slots"] }}</td>
 					<td>{{ server["max_listeners"] }}</td>
