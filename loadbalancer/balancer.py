@@ -128,6 +128,11 @@ def stats():
 	response.headers["Content-Type"] = "application/json"
 	return json.dumps(app.config["fetcher"].stats, indent=4)
 
+@app.route("/config.json")
+def config():
+	response.headers["Content-Type"] = "application/json"
+	return json.dumps(app.config["config"])
+
 @app.route("/")
 def index():
 	servers = sorted(
@@ -163,6 +168,7 @@ if __name__ == '__main__':
 	fetcher = FetchStatsThread(config)
 	fetcher.start()
 
+	app.config["config"] = config
 	app.config["fetcher"] = fetcher
 	run(app, server=args.server, host=args.host, port=args.port)
 
