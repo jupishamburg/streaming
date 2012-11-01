@@ -25,8 +25,12 @@ class FetchStatsThread(threading.Thread):
 
 		while True:
 			for url, config in self.servers.items():
-				with urllib.request.urlopen(urllib.parse.urljoin(url, "/json.xsl")) as f:
-					ic2_stats = json.loads(f.read().decode())
+				try:
+					with urllib.request.urlopen(urllib.parse.urljoin(url, "/json.xsl")) as f:
+						ic2_stats = json.loads(f.read().decode())
+				except:
+					del self.stats[url]
+					continue
 
 				# Prepare stats dictionary
 				stats = {
