@@ -29,7 +29,10 @@ class FetchStatsThread(threading.Thread):
 					with urllib.request.urlopen(urllib.parse.urljoin(url, "/json.xsl")) as f:
 						ic2_stats = json.loads(f.read().decode())
 				except:
-					del self.stats[url]
+					try:
+						del self.stats[url]
+					except KeyError:
+						pass
 					continue
 
 				# Prepare stats dictionary
