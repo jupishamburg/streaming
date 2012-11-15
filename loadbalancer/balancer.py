@@ -55,7 +55,7 @@ class FetchStatsThread(threading.Thread):
 						"description": mount["description"],
 						"genre": mount["genre"],
 						"url": mount["url"],
-						"bitrate": int(mount["bitrate"]),
+						"bitrate": mount["bitrate"],
 						"listeners": int(mount["listeners"]),
 					}
 
