@@ -30,6 +30,7 @@
 	<master-server-port>8000</master-server-port>
 	<master-update-interval>120</master-update-interval>
 	<master-password>Vingaigak6kuN9weij8joobuLai5zoochaiwoa7vah</master-password>
+	<relays-on-demand>1</relays-on-demand>
 
 	<paths>
 		<logdir>/var/log/icecast</logdir>
