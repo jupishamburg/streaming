@@ -44,6 +44,8 @@ live = input.harbor(harbor_mount, port = harbor_port, password = harbor_password
 # i herd u no liek silence so i inserted teh following line
 live = strip_blank(threshold = -39., length = 20., live)
 live = amplify(harbor_amplify, live)
+# i no need metadata. noar do u?
+output = drop_metadata(output)
 
 output = audio_to_stereo( 
 		amplify(output_amplify, 
